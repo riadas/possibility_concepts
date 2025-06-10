@@ -17,7 +17,7 @@ end
 Result = Dict{Int, Dict{Option, Judgment}}
 Dist = Vector{Tuple{Result, Float64}}
 
-@enum Color red blue green yellow pink black purple
+@enum Color red blue green yellow pink black purple orange
 @enum Direction left center right
 
 struct Cup <: Option 
