@@ -77,6 +77,8 @@ function visualize_task(task::Task, results=nothing; save_filename="", show_prob
                 end
                 push!(overall_probs, overall_prob * dist_prob)
             end
+        elseif option isa Arm 
+            overall_probs = [-1]
         end
         overall_prob = sum(overall_probs)
     end
@@ -238,6 +240,75 @@ function visualize_option(p, option::Path, i, total, apparatus_id, result=nothin
     p = plot!(p, xs, ys, grid=false, axis=([], false), legend=false, size=(150, 150), color=c, lw=3)
 
     p = plot!(p, [1, 1], [1.25, 1.75], grid=false, axis=([], false), legend=false, size=(150, 150), color="black", lw=3)
+
+    return p
+end
+
+function visualize_option(p, option::Arm, i, total, apparatus_id, result=nothing; show_probs=true)
+    rectangle(w, h, x, y) = Shape(x .+ [0,w,w,0], y .+ [0,0,h,h])
+    trapezoid(w, h, x, y) = Shape(x .+ [-0.2,w+0.2,w+0.3,-0.3], y .+ [0,0,h,h])
+
+    center_x = 0.5 #total == 1 ? 1 : i/(total + 1) * 2
+    # println(i)
+    # println(total)
+    # println(center_x)
+    # p = plot(0:2,0:2, linecolor="white")
+    if !isnothing(result)
+        all_values = [values(result[apparatus_id])...]
+        if length(unique(all_values)) == 1 
+            prob = round(1/length(all_values), digits=2)
+        elseif result[apparatus_id][option] == necessary 
+            prob = 1/length(filter(x -> x == necessary, all_values))
+        elseif result[apparatus_id][option] == impossible
+            prob = 0.0
+        elseif result[apparatus_id][option] == possible 
+            prob = 1/length(filter(x -> x == possible, all_values))
+        end
+    end
+
+    if !option.disabled
+        if option.direction == left 
+            # println("left")
+            xs = collect((center_x - 0.3):0.1:center_x)
+            ys = collect(0.5:0.25:1.25)
+            if !isnothing(result)
+                label = label_abbrevs[repr(result[apparatus_id][option])]
+                annotate!.(center_x - 0.3, 0.25, text.(label, :black, 4) )
+                if show_probs 
+                    annotate!.(center_x - 0.3, 0, text.(string(prob), :green, 4))
+                end
+            end
+        elseif option.direction == right 
+            # println("right")
+            xs = collect(center_x:0.1:(center_x+0.3))
+            ys = collect(1.25:-0.25:0.5)
+            if !isnothing(result)
+                label = label_abbrevs[repr(result[apparatus_id][option])]
+                annotate!.(center_x + 0.3, 0.25, text.(label, :black, 4) )
+                if show_probs 
+                    annotate!.(center_x + 0.3, 0, text.(string(prob), :green, 4))        
+                end
+            end
+        end
+    else
+        # println("center")
+        xs = collect((center_x + 0.3 * 3):0.1:(center_x + 0.3 * 4))
+        ys = collect(0.5:0.25:1.25)
+        if !isnothing(result)
+            label = label_abbrevs[repr(result[apparatus_id][option])]
+            annotate!.(center_x + 0.3 * 3, 0.25, text.(label, :black, 4) )
+            if show_probs 
+                annotate!.(center_x + 0.3 * 3, 0, text.(string(prob), :green, 4))
+            end
+        end
+    end
+    # println(xs)
+    c = option.disabled ? "red" : "black"
+    p = plot!(p, xs, ys, grid=false, axis=([], false), legend=false, size=(150, 150), color=c, lw=3)
+
+    p = plot!(p, [center_x, center_x], [1.25, 1.9], grid=false, axis=([], false), legend=false, size=(150, 150), color="black", lw=3)
+    p = plot!(p, [center_x + 0.3 * 4, center_x + 0.3 * 4], [1.25, 1.9], grid=false, axis=([], false), legend=false, size=(150, 150), color="black", lw=3)
+    p = plot!(p, [center_x, center_x + 0.3 * 4], [1.9, 1.9], grid=false, axis=([], false), legend=false, size=(150, 150), color="black", lw=3)
 
     return p
 end

@@ -40,6 +40,12 @@ struct Gumball <: Option
     id::Int
 end
 
+struct Arm <: Option 
+    direction::Direction
+    disabled::Bool
+    id::Int
+end
+
 struct ColoredPath <: Option 
     color::Color
     direction::Direction 
@@ -64,4 +70,5 @@ Apparatus(options::Vector{<:Option}) = Apparatus(options, increment_apparatus_id
 Cup(color::Color, disabled::Bool=false, shown_empty::Bool=false) = Cup(color, disabled, shown_empty, increment_id())
 Path(direction::Direction, disabled::Bool=false) = Path(direction, disabled, increment_id())
 Gumball(color::Color, disabled::Bool=false) = Gumball(color, disabled, increment_id())
+Arm(direction::Direction, disabled::Bool=false) = Arm(direction, disabled, increment_id())
 Base.string(x::Union{Apparatus, <:Option}) = "$(join(split(repr(x), ",")[1:end-1], ",")))"

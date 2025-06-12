@@ -9,15 +9,18 @@ four_gumballs_task = Task("four_gumballs", [Apparatus([Gumball(orange), Gumball(
 three_cups_task = Task("three_cups", [Apparatus([Cup(blue), Cup(yellow)]), Apparatus([Cup(green)])], false)
 four_cups_task = Task("four_cups", [Apparatus([Cup(blue), Cup(yellow)]), Apparatus([Cup(red), Cup(green, true, true)])], false)
 
-new_three_slides_task = nothing # two marbles
+three_arm_task = Task("three_arms", [Apparatus([Arm(left), Arm(right), Arm(center, true)])], false)
+
+# new_three_slides_task = nothing # two marbles
 
 tasks = [
-    three_cups_task,
-    four_cups_task,
-    three_slides_task,
-    four_slides_task,
-    three_gumballs_task,
-    four_gumballs_task,
+    # three_cups_task,
+    # four_cups_task,
+    # three_slides_task,
+    # four_slides_task,
+    # three_gumballs_task,
+    # four_gumballs_task,
+    three_arm_task,
 ]
 
 languages = [
