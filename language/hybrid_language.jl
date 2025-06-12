@@ -1,16 +1,15 @@
 include("base_semantics.jl")
-using StatsBase 
 
 function minimal_infer(task::Task)::Result
     result = Dict()
     for a in task.apparatuses
         result[a.id] = Dict()
         options = a.options 
-        valid_options = filter(o -> true, options) # !o.disabled
+        valid_options = filter(o -> !o.disabled, options)
         if length(valid_options) == 1 
             result[a.id][valid_options[1]] = necessary
         elseif length(valid_options) > 1 
-            o = sample(valid_options) # TODO figure out probability computation
+            o = sample(valid_options)
             result[a.id][o] = necessary 
             for o_ in valid_options
                 if o_ != o 
@@ -22,7 +21,33 @@ function minimal_infer(task::Task)::Result
         end
 
         for o in options 
-            if false # o.disabled 
+            if o.disabled 
+                result[a.id][o] = impossible
+            end
+        end
+
+    end
+    result
+end
+
+function modal_infer(task::Task)::Result
+    result = Dict()
+    for a in task.apparatuses
+        result[a.id] = Dict()
+        options = a.options 
+        valid_options = filter(o -> !o.disabled, options)
+        if length(valid_options) == 1 
+            result[a.id][valid_options[1]] = necessary
+        elseif length(valid_options) > 1 
+            for o in valid_options 
+                result[a.id][o] = possible
+            end
+        else
+            error("all options are disabled")            
+        end
+
+        for o in options 
+            if o.disabled 
                 result[a.id][o] = impossible
             end
         end
@@ -35,7 +60,7 @@ function minimal_infer_dist(task::Task)::Dist
     os = []
     for a in task.apparatuses
         options = a.options 
-        valid_options = filter(o -> true, options) # !o.disabled
+        valid_options = filter(o -> !o.disabled, options)
         if length(valid_options) >= 1
             push!(os, valid_options) 
         else
@@ -57,7 +82,7 @@ function minimal_infer_dist(task::Task)::Dist
             result[a.id][variant_o] = necessary
 
             options = a.options 
-            valid_options = filter(o -> true, options) # !o.disabled 
+            valid_options = filter(o -> !o.disabled, options)
             if length(valid_options) > 1 
                 for o_ in valid_options
                     if o_ != variant_o
@@ -67,7 +92,7 @@ function minimal_infer_dist(task::Task)::Dist
             end
 
             for o in options 
-                if false # o.disabled 
+                if o.disabled 
                     result[a.id][o] = impossible
                 end
             end
@@ -79,12 +104,25 @@ function minimal_infer_dist(task::Task)::Dist
     map(r -> (r, prob), results)
 end
 
+function modal_infer_dist(task::Task)::Dist 
+    result = modal_infer(task)
+    [(result, 1.0)]
+end
+
 function infer_sample(task::Task)
-    minimal_infer(task)
+    if task.visible 
+        modal_infer(task)
+    else
+        minimal_infer(task)
+    end
 end
 
 function infer_distribution(task::Task)
-    minimal_infer_dist(task)
+    if task.visible 
+        modal_infer_dist(task)
+    else
+        minimal_infer_dist(task)
+    end
 end
 
 function can(task::Task, outcome::Option, infer_alg_dist, apparatus)::Bool

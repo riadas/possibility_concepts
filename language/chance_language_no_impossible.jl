@@ -6,11 +6,7 @@ function modal_infer(task::Task)::Result
         result[a.id] = Dict()
         options = a.options 
         for o in options 
-            if !o.disabled
-                result[a.id][o] = necessary
-            else
-                result[a.id][o] = impossible
-            end
+            result[a.id][o] = necessary
         end
     end
     result

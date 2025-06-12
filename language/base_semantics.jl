@@ -10,6 +10,7 @@ struct Apparatus
 end
 
 struct Task 
+    name::String
     apparatuses::Vector{Apparatus}
     visible::Bool
 end
@@ -23,6 +24,7 @@ Dist = Vector{Tuple{Result, Float64}}
 struct Cup <: Option 
     color::Color
     disabled::Bool
+    shown_empty::Bool
     id::Int
 end
 
@@ -59,7 +61,7 @@ function increment_id()
 end
 
 Apparatus(options::Vector{<:Option}) = Apparatus(options, increment_apparatus_id())
-Cup(color::Color, disabled::Bool=false) = Cup(color, disabled, increment_id())
+Cup(color::Color, disabled::Bool=false, shown_empty::Bool=false) = Cup(color, disabled, shown_empty, increment_id())
 Path(direction::Direction, disabled::Bool=false) = Path(direction, disabled, increment_id())
 Gumball(color::Color, disabled::Bool=false) = Gumball(color, disabled, increment_id())
 Base.string(x::Union{Apparatus, <:Option}) = "$(join(split(repr(x), ",")[1:end-1], ",")))"

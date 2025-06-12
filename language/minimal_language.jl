@@ -30,32 +30,6 @@ function minimal_infer(task::Task)::Result
     result
 end
 
-function modal_infer(task::Task)::Result
-    result = Dict()
-    for a in task.apparatuses
-        result[a.id] = Dict()
-        options = a.options 
-        valid_options = filter(o -> !o.disabled, options)
-        if length(valid_options) == 1 
-            result[a.id][valid_options[1]] = necessary
-        elseif length(valid_options) > 1 
-            for o in valid_options 
-                result[a.id][o] = possible
-            end
-        else
-            error("all options are disabled")            
-        end
-
-        for o in options 
-            if o.disabled 
-                result[a.id][o] = impossible
-            end
-        end
-
-    end
-    result
-end
-
 function minimal_infer_dist(task::Task)::Dist 
     os = []
     for a in task.apparatuses
@@ -104,25 +78,12 @@ function minimal_infer_dist(task::Task)::Dist
     map(r -> (r, prob), results)
 end
 
-function modal_infer_dist(task::Task)::Dist 
-    result = modal_infer(task)
-    [(result, 1.0)]
-end
-
 function infer_sample(task::Task)
-    if task.visible 
-        modal_infer(task)
-    else
-        minimal_infer(task)
-    end
+    minimal_infer(task)
 end
 
 function infer_distribution(task::Task)
-    if task.visible 
-        modal_infer_dist(task)
-    else
-        minimal_infer_dist(task)
-    end
+    minimal_infer_dist(task)
 end
 
 function can(task::Task, outcome::Option, infer_alg_dist, apparatus)::Bool
