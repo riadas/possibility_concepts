@@ -2,7 +2,7 @@ using StatsBase
 
 abstract type Option end 
 
-@enum Judgment impossible possible necessary
+@enum Judgment impossible possible necessary mode1 mode2 mode3
 
 struct Apparatus
     options::Vector{<:Option}
@@ -18,7 +18,7 @@ end
 Result = Dict{Int, Dict{Option, Judgment}}
 Dist = Vector{Tuple{Result, Float64}}
 
-@enum Color red blue green yellow pink black purple orange
+@enum Color red blue green yellow pink black purple orange white
 @enum Direction left center right
 
 struct Cup <: Option 

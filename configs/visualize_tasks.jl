@@ -17,11 +17,19 @@ function visualize_task(task::Task, results=nothing; save_filename="", show_prob
 
     # annotate overall success rate
     overall_prob = nothing
-    if !isnothing(result)
+    if !isnothing(result) && show_title
         overall_probs = []
         if !(results isa AbstractArray) 
             results = [(result, 1.0)]
         end
+
+        translated_results = []
+        for result in results 
+            translated_result = translate_synth_modes_to_real_modes(result[1])
+            push!(translated_results, (translated_result, result[2]))
+        end 
+        results = translated_results
+
         @show results 
         option = task.apparatuses[1].options[1]
         if option isa Cup || option isa Path # prize is an option
@@ -78,7 +86,7 @@ function visualize_task(task::Task, results=nothing; save_filename="", show_prob
                 push!(overall_probs, overall_prob * dist_prob)
             end
         elseif option isa Arm 
-            overall_probs = [-1]
+            overall_probs = [results[1][1][task.apparatuses[1].id][task.apparatuses[1].options[end]] == impossible ? 1.0 : 2/3]
         end
         overall_prob = sum(overall_probs)
     end
@@ -111,8 +119,8 @@ function visualize_apparatus(apparatus::Apparatus, result=nothing; show_probs=tr
     return p
 end
 
-label_abbrevs = Dict(["necessary" => "nec.", "possible" => "poss.", "impossible" => "imposs."])
-label_abbrevs = Dict(["necessary" => "necessary", "possible" => "possible", "impossible" => "impossible"])
+label_abbrevs = Dict(["necessary" => "nec.", "possible" => "poss.", "impossible" => "imposs.", "mode1" => "mode1", "mode2" => "mode2", "mode3" => "mode3"])
+label_abbrevs = Dict(["necessary" => "necessary", "possible" => "possible", "impossible" => "impossible", "mode1" => "mode1", "mode2" => "mode2", "mode3" => "mode3"])
 
 function visualize_option(p, option::Cup, i, total, apparatus_id, result=nothing; show_probs=true)
     rectangle(w, h, x, y) = Shape(x .+ [0,w,w,0], y .+ [0,0,h,h])
@@ -130,10 +138,11 @@ function visualize_option(p, option::Cup, i, total, apparatus_id, result=nothing
         label = label_abbrevs[repr(result[apparatus_id][option])]
         annotate!.(center_x, 0.2, text.(label, :black, 6) )
 
-        all_values = [values(result[apparatus_id])...]
+        translated_result = translate_synth_modes_to_real_modes(result)
+        all_values = [values(translated_result[apparatus_id])...]
         if length(unique(all_values)) == 1 
             prob = round(1/length(all_values), digits=2)
-        elseif result[apparatus_id][option] == necessary 
+        elseif translated_result[apparatus_id][option] == necessary 
             prob = 1.0
         else
             prob = 0.0
@@ -165,10 +174,11 @@ function visualize_option(p, option::Gumball, i, total, apparatus_id, result=not
         label = label_abbrevs[repr(result[apparatus_id][option])]
         annotate!.(center_x, 0.3, text.(label, :black, 6) )
 
-        all_values = [values(result[apparatus_id])...]
+        translated_result = translate_synth_modes_to_real_modes(result)
+        all_values = [values(translated_result[apparatus_id])...]
         if length(unique(all_values)) == 1 
             prob = round(1/length(all_values), digits=2)
-        elseif result[apparatus_id][option] == necessary 
+        elseif translated_result[apparatus_id][option] == necessary 
             prob = 1.0
         else
             prob = 0.0
@@ -191,10 +201,11 @@ function visualize_option(p, option::Path, i, total, apparatus_id, result=nothin
     # println(center_x)
     # p = plot(0:2,0:2, linecolor="white")
     if !isnothing(result)
-        all_values = [values(result[apparatus_id])...]
+        translated_result = translate_synth_modes_to_real_modes(result)
+        all_values = [values(translated_result[apparatus_id])...]
         if length(unique(all_values)) == 1 
             prob = round(1/length(all_values), digits=2)
-        elseif result[apparatus_id][option] == necessary 
+        elseif translated_result[apparatus_id][option] == necessary 
             prob = 1.0
         else
             prob = 0.0
@@ -254,14 +265,15 @@ function visualize_option(p, option::Arm, i, total, apparatus_id, result=nothing
     # println(center_x)
     # p = plot(0:2,0:2, linecolor="white")
     if !isnothing(result)
-        all_values = [values(result[apparatus_id])...]
+        translated_result = translate_synth_modes_to_real_modes(result)
+        all_values = [values(translated_result[apparatus_id])...]
         if length(unique(all_values)) == 1 
             prob = round(1/length(all_values), digits=2)
-        elseif result[apparatus_id][option] == necessary 
+        elseif translated_result[apparatus_id][option] == necessary 
             prob = 1/length(filter(x -> x == necessary, all_values))
-        elseif result[apparatus_id][option] == impossible
+        elseif translated_result[apparatus_id][option] == impossible
             prob = 0.0
-        elseif result[apparatus_id][option] == possible 
+        elseif translated_result[apparatus_id][option] == possible 
             prob = 1/length(filter(x -> x == possible, all_values))
         end
     end
@@ -273,9 +285,9 @@ function visualize_option(p, option::Arm, i, total, apparatus_id, result=nothing
             ys = collect(0.5:0.25:1.25)
             if !isnothing(result)
                 label = label_abbrevs[repr(result[apparatus_id][option])]
-                annotate!.(center_x - 0.3, 0.25, text.(label, :black, 4) )
+                annotate!.(center_x - 0.3, 0.25, text.(label, :black, 3) )
                 if show_probs 
-                    annotate!.(center_x - 0.3, 0, text.(string(prob), :green, 4))
+                    annotate!.(center_x - 0.3, 0, text.(string(prob), :green, 3))
                 end
             end
         elseif option.direction == right 
@@ -284,9 +296,9 @@ function visualize_option(p, option::Arm, i, total, apparatus_id, result=nothing
             ys = collect(1.25:-0.25:0.5)
             if !isnothing(result)
                 label = label_abbrevs[repr(result[apparatus_id][option])]
-                annotate!.(center_x + 0.3, 0.25, text.(label, :black, 4) )
+                annotate!.(center_x + 0.3, 0.25, text.(label, :black, 3) )
                 if show_probs 
-                    annotate!.(center_x + 0.3, 0, text.(string(prob), :green, 4))        
+                    annotate!.(center_x + 0.3, 0, text.(string(prob), :green, 3))        
                 end
             end
         end
@@ -296,9 +308,9 @@ function visualize_option(p, option::Arm, i, total, apparatus_id, result=nothing
         ys = collect(0.5:0.25:1.25)
         if !isnothing(result)
             label = label_abbrevs[repr(result[apparatus_id][option])]
-            annotate!.(center_x + 0.3 * 3, 0.25, text.(label, :black, 4) )
+            annotate!.(center_x + 0.3 * 3, 0.25, text.(label, :black, 3) )
             if show_probs 
-                annotate!.(center_x + 0.3 * 3, 0, text.(string(prob), :green, 4))
+                annotate!.(center_x + 0.3 * 3, 0, text.(string(prob), :green, 3))
             end
         end
     end
@@ -311,6 +323,23 @@ function visualize_option(p, option::Arm, i, total, apparatus_id, result=nothing
     p = plot!(p, [center_x, center_x + 0.3 * 4], [1.9, 1.9], grid=false, axis=([], false), legend=false, size=(150, 150), color="black", lw=3)
 
     return p
+end
+
+function translate_synth_modes_to_real_modes(result_)
+    result = deepcopy(result_)
+    for id in keys(result)
+        for o in keys(result[id])
+            synth_mode = result[id][o]
+            if synth_mode == mode1 
+                result[id][o] = necessary
+            elseif synth_mode == mode2 
+                result[id][o] = impossible
+            elseif synth_mode == mode3 
+                result[id][o] = possible
+            end
+        end
+    end
+    result
 end
 
 # trapezoid(w, h, x, y) = Shape(x .+ [-0.25,w+0.25,w+0.4,-0.4], y .+ [0,0,h,h])
