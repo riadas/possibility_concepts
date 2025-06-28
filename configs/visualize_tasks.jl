@@ -30,7 +30,7 @@ function visualize_task(task::Task, results=nothing; save_filename="", show_prob
         end 
         results = translated_results
 
-        @show results 
+        # @show results 
         option = task.apparatuses[1].options[1]
         if option isa Cup || option isa Path # prize is an option
             for result in results
@@ -38,15 +38,15 @@ function visualize_task(task::Task, results=nothing; save_filename="", show_prob
                 prize_apparatus = task.apparatuses[end]
                 prize_option = prize_apparatus.options[1]
                 prize_str = string(prize_option)
-                @show prize_apparatus.id
+                # @show prize_apparatus.id
                 prize_result = result[prize_apparatus.id][prize_option]
                 prize_prob = result[prize_apparatus.id][prize_option] == possible ? 0.5 : (result[prize_apparatus.id][prize_option] == impossible ? 0.0 : 1.0)
                 
                 alt_options = filter(x -> result[task.apparatuses[1].id][x] != impossible, task.apparatuses[1].options)
                 alt_probs = map(x -> result[task.apparatuses[1].id][x] == possible ? 0.5 : 1.0, alt_options)
                 
-                println(alt_probs)
-                println(prize_prob)
+                # println(alt_probs)
+                # println(prize_prob)
                 if alt_probs == []
                     overall_prob = 1.0
                 elseif maximum(alt_probs) > prize_prob

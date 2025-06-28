@@ -19,5 +19,5 @@ function infer_modes_dist(task, num_samples=100)
 end
 
 dist = infer_modes_dist(task)
-println(dist)
+# println(dist)
 visualize_task(task, dist, show_probs=true, show_title=true)

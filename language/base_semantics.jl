@@ -72,3 +72,10 @@ Path(direction::Direction, disabled::Bool=false) = Path(direction, disabled, inc
 Gumball(color::Color, disabled::Bool=false) = Gumball(color, disabled, increment_id())
 Arm(direction::Direction, disabled::Bool=false) = Arm(direction, disabled, increment_id())
 Base.string(x::Union{Apparatus, <:Option}) = "$(join(split(repr(x), ",")[1:end-1], ",")))"
+
+mutable struct Function 
+    name::String
+    arg_names::Vector{String}
+    arg_types::Vector{DataType}
+    definition::String
+end
