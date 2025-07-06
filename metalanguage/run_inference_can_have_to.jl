@@ -3,7 +3,7 @@ include("../language/test.jl")
 include("../configs/visualize_tasks.jl")
 
 global alpha_num_modes = 0.1
-global alpha_check_disabled = 0.48
+global alpha_check_disabled = 0.8 # 0.48
 global alpha_alg_variant = 0.0001
 global num_repeats = 30
 
@@ -43,10 +43,63 @@ function compute_prior(language_spec)
     alg_options_prob = alg_options_probs[findall(x -> x == language_spec["algorithm"],  ["none", "sample", "enumerate"])[1]]
     prob = prob * alg_options_prob 
 
+    # TODO: prior on can/have to definitions
+    # current patch: un-normalized score 
+    if language_spec["have_to_equals_can"]
+        prob = prob * 100
+    end
+
+    # patch 2 
+    if language_spec["can_bin_op"] == "or"
+        prob = prob * 5
+    end
+
     return prob
 end
 
-function compute_likelihood(task::Task, language_spec)
+function compute_likelihood_verbal(task::VerbalTask, language_spec)
+    l = generate_language(language_spec)
+    println(l)
+    parts = split(l, "end\n\n\nfunction")
+    for i in 1:length(parts)
+        part = parts[i] 
+        if i != 1
+            part = "function$(part)"
+        end
+
+        if i != length(parts)
+            part = "$(part)\nend"
+        end
+        eval(Meta.parse(part)) # redefines the infer_modes, can, and have_to functions
+    end
+    
+    function infer_modes_dist(task, num_samples=100)
+        results = []
+        for i in 1:num_samples 
+            result = Base.invokelatest(infer_modes, task)
+            push!(results, repr(result))
+        end
+        unique!(results)
+        weighted_results = map(x -> (eval(Meta.parse(x)), 1/length(results)), results)
+        return weighted_results
+    end
+
+    if task.can 
+        answer = Base.invokelatest(can, task, infer_modes_dist)
+        correct_answer = can_correct(task, infer_modes_dist_correct)
+    else
+        answer = Base.invokelatest(have_to, task, infer_modes_dist)
+        correct_answer = have_to_correct(task, infer_modes_dist_correct)
+    end
+
+    if answer == correct_answer 
+        1.0
+    else
+        0.0
+    end
+end
+
+function compute_likelihood_nonverbal(task::NonverbalTask, language_spec)
     l = generate_language(language_spec)
     println(l)
     parts = split(l, "end\n\n\nfunction")
@@ -147,9 +200,18 @@ function compute_likelihood(task::Task, language_spec)
     return overall_prob
 end
 
-function compute_likelihood(tasks::Vector{<:Task}, language_spec)
-    probs = map(task -> compute_likelihood(task, language_spec), tasks)
-    foldl(*, probs, init=1.0)
+function compute_likelihood_mixed(tasks::Vector{<:Task}, language_spec)
+    println("COMPUTE_LIKELIHOOD")
+    nonverbal_tasks = filter(x -> x isa NonverbalTask, tasks)
+    probs = map(task -> compute_likelihood_nonverbal(task, language_spec), nonverbal_tasks)
+    nonverbal_likelihood = foldl(*, probs, init=1.0)
+
+    verbal_tasks = filter(x -> x isa VerbalTask, tasks)
+    probs = map(task -> compute_likelihood_verbal(task, language_spec), verbal_tasks)
+    @show probs
+    verbal_likelihood = foldl(+, probs, init=0.0)/length(probs)
+
+    nonverbal_likelihood * verbal_likelihood
 end
 
 chance_spec = Dict([
@@ -176,7 +238,43 @@ modal_spec = Dict([
     "algorithm" => "enumerate" 
 ])
 
-specs = [chance_spec, intermediate_spec, minimal_spec, modal_spec]
+# specs = [chance_spec, intermediate_spec, minimal_spec, modal_spec]
+
+specs = []
+for num_modes in [1,2,3]
+    list_options = map(l -> map(i -> [mode1, mode2, mode3][i], l), collect(combinations(collect(1:num_modes))))
+    list_options = [list_options..., []]
+    for check_disabled in [false, true]
+        for algorithm in ["none", "sample", "enumerate"]
+            spec = Dict([
+                "num_modes" => num_modes,
+                "check_disabled" => check_disabled,
+                "algorithm" => algorithm
+            ])
+
+            for can_bin_op in ["or", "and"]
+                spec["can_bin_op"] = can_bin_op
+                for can_list in list_options 
+                    spec["can_list"] = can_list
+                    for have_to_equals_can in [true, false]
+                        spec["have_to_equals_can"] = have_to_equals_can
+                        if !have_to_equals_can 
+                            for have_to_bin_op in ["or", "and"]
+                                spec["have_to_bin_op"] = have_to_bin_op
+                                for have_to_list in list_options 
+                                    spec["have_to_list"] = have_to_list
+                                    push!(specs, deepcopy(spec))
+                                end
+                            end
+                        else
+                            push!(specs, deepcopy(spec))
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
 
 tasks = [
     # three_cups_task,
@@ -186,19 +284,30 @@ tasks = [
     # three_gumballs_task,
     # four_gumballs_task,
     # three_arm_task,
+    four_cups_task_verbal_option1_can,
+    four_cups_task_verbal_option1_have_to,
+    four_cups_task_verbal_option2_can,
+    four_cups_task_verbal_option2_have_to,
+
+    four_cups_task_verbal_option3_can,
+    four_cups_task_verbal_option3_have_to,
+    four_cups_task_verbal_option4_can,
+    four_cups_task_verbal_option4_have_to,
 ]
 
 spec_names = []
 posteriors = Dict()
 priors = []
 likelihoods = []
-for spec in specs 
-    spec_name = """modes=$(spec["num_modes"]), check_disabled=$(spec["check_disabled"]), algorithm=$(spec["algorithm"])"""
+for i in 1:length(specs)
+    println("SPEC NUMBER: $(i)")
+    spec = specs[i] 
+    spec_name = join(map(k -> "$(k)=$(spec[k])", sort([keys(spec)...])), ", ")
     push!(spec_names, spec_name)
     posteriors[spec_name] = []
 
     prior = compute_prior(spec)
-    likelihood = compute_likelihood(tasks, spec)
+    likelihood = compute_likelihood_mixed(tasks, spec)
     push!(priors, prior)
     push!(likelihoods, likelihood)
     for repeats in 1:num_repeats
@@ -217,7 +326,7 @@ end
 
 sums = map(r -> sum(map(n -> posteriors[n][r], spec_names)), 1:num_repeats)
 
-pretty_spec_names = ["chance language, no impos", "chance language, with impos", "minimal language, i.e. propositional logic", "modal language, i.e. first-order logic"]
+# pretty_spec_names = ["chance language, no impos", "chance language, with impos", "minimal language, i.e. propositional logic", "modal language, i.e. first-order logic"]
 
 p = plot(1:num_repeats, collect(1:num_repeats) * 1/num_repeats, color="white", label=false)
 for i in 1:length(spec_names)
@@ -225,7 +334,7 @@ for i in 1:length(spec_names)
     println(spec_name)
     println("\tprior: $(priors[i])")
     println("\tlikelihood: $(likelihoods[i])")
-    p = plot!(collect(1:num_repeats), posteriors[spec_name] ./ sums, label = "$(pretty_spec_names[i]) ($(spec_name))", legend=:outerbottom, legendfontsize=7)
+    p = plot!(collect(1:num_repeats), posteriors[spec_name] ./ sums, label = "$(spec_name)", legend=false)
 end
 xlabel!("Training Data Volume", xguidefontsize=9)
 ylabel!("Proportion", yguidefontsize=9)

@@ -20,4 +20,4 @@ end
 
 dist = infer_modes_dist(task)
 # println(dist)
-visualize_task(task, dist, show_probs=true, show_title=true)
+visualize_NonverbalTask(task, dist, show_probs=true, show_title=true)

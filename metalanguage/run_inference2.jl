@@ -49,7 +49,18 @@ end
 function compute_likelihood(task::Task, language_spec)
     l = generate_language(language_spec)
     println(l)
-    eval(Meta.parse(l)) # redefines the infer_modes function
+    parts = split(l, "end\n\n\nfunction")
+    for i in 1:length(parts)
+        part = parts[i] 
+        if i != 1
+            part = "function$(part)"
+        end
+
+        if i != length(parts)
+            part = "$(part)\nend"
+        end
+        eval(Meta.parse(part)) # redefines the infer_modes, can, and have_to functions
+    end
 
     function infer_modes_dist(task, num_samples=100)
         results = []
@@ -136,7 +147,7 @@ function compute_likelihood(task::Task, language_spec)
     return overall_prob
 end
 
-function compute_likelihood(tasks::Vector{Task}, language_spec)
+function compute_likelihood(tasks::Vector{<:Task}, language_spec)
     probs = map(task -> compute_likelihood(task, language_spec), tasks)
     foldl(*, probs, init=1.0)
 end
