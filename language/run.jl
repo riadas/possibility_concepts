@@ -1,10 +1,10 @@
-include("configs/visualize_tasks.jl")
-include("language/test.jl")
+include("../configs/visualize_tasks.jl")
+include("test.jl")
 
 final_plots = []
 for language in languages 
     for task in tasks
-        include("language/$(language).jl")
+        include("$(language).jl")
         println("LANGUAGE: $(language), TASK: $(task.name)") 
         save_filename = "language/images/$(task.name)_$(language).png"
 
@@ -16,4 +16,5 @@ for language in languages
     end
 end
 
-plot(final_plots..., layout = (8, 6), size = (300 * 6, 150 * 8))
+# plot(final_plots..., layout = (length(languages), length(tasks)), size = (300 * length(tasks), 150 * length(languages)))
+plot(final_plots..., layout = (length(languages), length(tasks)), size = (150 * length(tasks), 150 * length(languages)))

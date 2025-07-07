@@ -14,6 +14,7 @@ struct NonverbalTask <: Task
     name::String
     apparatuses::Vector{Apparatus}
     visible::Bool
+    agent_choices::Int
 end
 
 struct VerbalTask <: Task 
@@ -61,6 +62,12 @@ struct ColoredPath <: Option
     id::Int
 end
 
+struct PlinkoPath <: Option 
+    position::Int
+    disabled::Bool 
+    id::Int
+end
+
 global apparatus_counter = 0
 global id_counter = 0
 
@@ -75,11 +82,13 @@ function increment_id()
 end
 
 VerbalTask(task::NonverbalTask, outcome::Option, can::Bool) = VerbalTask(task, outcome, can, nothing)
+NonverbalTask(name::String, apparatuses::Vector{Apparatus}, visible::Bool) = NonverbalTask(name, apparatuses, visible, 1)
 Apparatus(options::Vector{<:Option}) = Apparatus(options, increment_apparatus_id())
 Cup(color::Color, disabled::Bool=false, shown_empty::Bool=false) = Cup(color, disabled, shown_empty, increment_id())
 Path(direction::Direction, disabled::Bool=false) = Path(direction, disabled, increment_id())
 Gumball(color::Color, disabled::Bool=false) = Gumball(color, disabled, increment_id())
 Arm(direction::Direction, disabled::Bool=false) = Arm(direction, disabled, increment_id())
+PlinkoPath(position::Int, disabled::Bool=false) = PlinkoPath(position, disabled, increment_id())
 Base.string(x::Union{Apparatus, <:Option}) = "$(join(split(repr(x), ",")[1:end-1], ",")))"
 
 mutable struct Function 

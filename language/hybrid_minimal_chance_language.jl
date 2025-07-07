@@ -30,32 +30,6 @@ function minimal_infer(task::Task)::Result
     result
 end
 
-function modal_infer(task::Task)::Result
-    result = Dict()
-    for a in task.apparatuses
-        result[a.id] = Dict()
-        options = a.options 
-        valid_options = filter(o -> !o.disabled, options)
-        if length(valid_options) == 1 
-            result[a.id][valid_options[1]] = necessary
-        elseif length(valid_options) > 1 
-            for o in valid_options 
-                result[a.id][o] = possible
-            end
-        else
-            error("all options are disabled")            
-        end
-
-        for o in options 
-            if o.disabled 
-                result[a.id][o] = impossible
-            end
-        end
-
-    end
-    result
-end
-
 function minimal_infer_dist(task::Task)::Dist 
     os = []
     for a in task.apparatuses
@@ -104,24 +78,36 @@ function minimal_infer_dist(task::Task)::Dist
     map(r -> (r, prob), results)
 end
 
-function modal_infer_dist(task::Task)::Dist 
-    result = modal_infer(task)
+function chance_infer(task::Task)
+    result = Dict()
+    for a in task.apparatuses
+        result[a.id] = Dict()
+        options = a.options 
+        for o in options 
+            result[a.id][o] = necessary
+        end
+    end
+    result
+end
+
+function chance_infer_dist(task::Task)
+    result = chance_infer(task)
     [(result, 1.0)]
 end
 
 function infer_sample(task::Task)
-    if task.visible 
-        modal_infer(task)
-    else
+    if occursin("deterministic", task.name)
         minimal_infer(task)
+    else
+        chance_infer(task)
     end
 end
 
 function infer_distribution(task::Task)
-    if task.visible || occursin("deterministic", task.name)
-        modal_infer_dist(task)
-    else
+    if occursin("deterministic", task.name)
         minimal_infer_dist(task)
+    else
+        chance_infer_dist(task)
     end
 end
 
