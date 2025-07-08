@@ -511,6 +511,7 @@ function visualize_option(p, option::PlinkoPath, i, total, apparatus_id, apparat
     # plot cushions 
     # println(cushions)
     for cushion_idx in 1:cushions 
+        p = plot!(p, trapezoid(0, 0.05, center_x, 0.45+0.075*(cushion_idx)), opacity=1.0, grid=false, axis=([], false), legend=false, size=(150, 150), color="black", fillcolor="pink")
         p = plot!(p, trapezoid(0, 0.05, center_x, 0.45+0.075*(cushion_idx + (double_cushion ? 1 : 0))), opacity=1.0, grid=false, axis=([], false), legend=false, size=(150, 150), color="black", fillcolor="pink")
     end
 

@@ -46,4 +46,32 @@ function sample_from_category_dist(weights; num_samples=1)
     title!(t)
     xlabel!("Category")
     ylabel!("Proportion of Samples")
+
+    return p, combo
+end
+
+function plot_mode(weights; num_samples=1, num_trials=10)
+    all_combos = []
+    modes = []
+    for i in 1:num_trials 
+        _, combo = sample_from_category_dist(weights, num_samples=num_samples)
+        push!(all_combos, combo)
+        m = maximum(combo)
+        idxs = findall(x -> x == m, combo)
+        if length(idxs) > 1 
+            idx = sample(idxs)
+        else
+            idx = idxs[1]
+        end
+        push!(modes, idx)
+    end
+    xs = ["a", "b", "c", "d"][1:length(weights)]
+    ys = map(i -> count(x -> x == i, modes), 1:length(weights))
+   
+    
+    p = bar(xs, ys ./ num_trials, legend=false)
+    t = "# Trials = $(num_trials), Mental Samples per Trial = $(num_samples)"
+    title!(t)
+    xlabel!("Category")
+    ylabel!("Proportion of Trials")
 end
